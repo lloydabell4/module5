@@ -1,0 +1,118 @@
+---
+title: "class_04_2021 - learning activity"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load data and explore
+
+Explore the opiates dataset (found in socviz). What are the variables? Observations? Start thinking about what you might want to explore. 
+
+Considering sharing one of your groups projects with your group so you can work off a single RMD file. 
+
+```{r Setup }
+library(socviz)
+
+str(opiates)
+
+opiates
+```
+
+## Exploratory Question
+
+Develop an exploratory question that requires creating new aggregated variable(s) and write it out below. 
+
+Which states are most impacted by the opiate crisis and has the crisis gotten worse over time? 
+
+## Develop code to create your new variables
+
+Write our the code required to create your new aggregated variables
+```{r Aggregation_Summarize}
+#creating a new variable that gives us death rate per 100k citizen
+opiates_withper100k <- opiates %>%
+  mutate(death_per100k = deaths/(population/100000))
+
+#creating new summary table with mean death rate per 100k citizen across time
+opiates_meanper100k <- opiates_withper100k %>%
+  group_by(state,region, division_name)%>%
+  summarise(mean_per100k = mean(death_per100k))
+
+```
+
+##Create visualizations that address your exploratory question
+Create as many visualization as you need to properly address your question. 
+```{r}
+#year vs total number of deaths
+
+sum_opiates <- opiates%>%
+  group_by(year)%>%
+  summarise(sum_deaths = sum(deaths))
+
+ggplot(sum_opiates, aes(x = year))+
+  geom_bar(aes(y = sum_deaths), stat = "identity")
+
+```
+
+
+```{r Visualization 1}
+#creating a new variable that gives us death rate per 100k citizen
+opiates_withper100k <- opiates %>%
+  mutate(death_per100k = deaths/(population/100000))
+
+#creating new summary table with mean death rate per 100k citizen across time
+opiates_meanper100k <- opiates_withper100k %>%
+  group_by(state,region, division_name)%>%
+  summarise(mean_adjusted = mean(adjusted))
+
+across_mean <- mean(opiates_meanper100k$mean_per100k)
+
+filter_division <- c("Middle Atlantic","New England","South Atlantic")
+
+opiates_meanper100k%>%
+  filter(division_name %in% filter_division)%>%
+  ggplot(aes(x = mean_adjusted,
+             y = reorder(state,mean_adjusted,na.rm = TRUE,),
+             color = division_name))+
+  geom_point()+
+  geom_vline(aes(xintercept = across_mean))+
+  theme_classic()+
+  labs(title = "Opiate Crisis: Mean Number of Deaths Per 100k", x = "Mean Number of Deaths Per 100k", y = "State")
+  
+```
+```{r}
+opiates_meanper100k <- opiates_withper100k %>%
+  group_by(state,region, division_name)%>%
+  summarise(mean_adjusted = mean(adjusted, na.rm = TRUE),
+            sd_adjusted = sd(adjusted, na.rm = TRUE))
+
+filter_division <- c("Middle Atlantic","New England","South Atlantic")
+
+opiates_meanper100k%>%
+  filter(division_name %in% filter_division)%>%
+  ggplot(aes(x = mean_adjusted,
+             y = reorder(state,mean_adjusted,na.rm = TRUE)))+
+  geom_pointrange(mapping = aes(xmin = mean_adjusted - sd_adjusted, 
+                                xmax = mean_adjusted + sd_adjusted,
+                                color = division_name))+
+  geom_vline(aes(xintercept = mean(mean_adjusted)))+
+  theme_classic()+
+  labs(title = "Number of Deaths Per 100k | 1999-2014", x = "Mean Number of Deaths Per 100k", y = "State")
+```
+
+
+
+```{r Visualization 2}
+select_year <- c(2002,2006,2010,2014)
+
+opiates %>%
+  filter(year%in%select_year & division_name == "South Atlantic")%>%
+  ggplot()+
+  geom_bar(aes(x= year, y = adjusted,fill = state), stat = "identity")+
+  facet_wrap(~state)+
+  guides(fill = FALSE)
+
+```
+
